@@ -1,396 +1,613 @@
-\# Enterprise Infrastructure Platform
+# Enterprise Infrastructure Platform
 
+> A production-inspired enterprise infrastructure environment combining secure remote access, centralized storage, identity-based access control, monitoring, printing, automation, and a custom infrastructure management platform.
 
+![Status](https://img.shields.io/badge/status-active%20development-orange)
+![Ubuntu](https://img.shields.io/badge/Ubuntu-26.04%20LTS-E95420)
+![Samba](https://img.shields.io/badge/Storage-Samba-0078D4)
+![Java](https://img.shields.io/badge/Backend-Spring%20Boot-6DB33F)
+![React](https://img.shields.io/badge/Frontend-React%20%2B%20TypeScript-61DAFB)
 
-A production-inspired enterprise infrastructure environment combining secure remote access, centralized storage, file sharing, access control, monitoring, print services, and a custom management platform.
+---
 
+## Project Vision
 
+This project builds a realistic enterprise infrastructure environment from the infrastructure layer upward.
 
-The project is being built from the infrastructure layer upward, with real Linux services managed and observed through a future Spring Boot + React control plane.
+Rather than creating only a simulated dashboard, the platform is backed by real Linux servers, networking, storage services, authentication, permissions, monitoring, and eventually secure remote access.
 
+The final system will combine:
 
+- Real Linux infrastructure
+- Secure corporate networking
+- Enterprise storage
+- VPN remote access
+- Print infrastructure
+- Monitoring and observability
+- Java / Spring Boot management APIs
+- React / TypeScript administration interface
+- PostgreSQL
+- Docker and CI/CD
+- Kubernetes and cloud infrastructure
 
-\## Current Architecture
+---
 
+# Current Architecture
 
+```mermaid
+flowchart TD
 
-Windows Host
+    Internet["Internet"]
+    Windows["Windows Host"]
 
-&#x20;   |
+    Gateway["infra-gateway<br/>Ubuntu Server 26.04.1<br/>10.10.10.10"]
 
-&#x20;   | VirtualBox
+    Storage["storage-01<br/>Ubuntu Server 26.04.1<br/>10.10.10.20"]
 
-&#x20;   |
+    Samba["Samba / SMB"]
 
-&#x20;   +-- infra-gateway
+    Finance["Finance"]
+    HR["HR"]
+    Engineering["Engineering"]
+    Management["Management"]
+    Shared["Shared"]
 
-&#x20;   |     NAT:      10.0.2.15
+    Windows -->|SSH / VirtualBox NAT| Gateway
 
-&#x20;   |     corp-net: 10.10.10.10
+    Internet --> Gateway
 
-&#x20;   |
+    Gateway -->|corp-net<br/>10.10.10.0/24| Storage
 
-&#x20;   +-- storage-01
+    Storage --> Samba
 
-&#x20;         NAT:      10.0.2.15
+    Samba --> Finance
+    Samba --> HR
+    Samba --> Engineering
+    Samba --> Management
+    Samba --> Shared
+```
 
-&#x20;         corp-net: 10.10.10.20
+---
 
+# Network Foundation
 
+Private corporate network:
 
-Private network:
-
-
-
+```text
 10.10.10.0/24
+```
 
+| Server | Role | Internal IP |
+|---|---|---|
+| `infra-gateway` | Gateway / future VPN / firewall | `10.10.10.10` |
+| `storage-01` | Enterprise file and storage server | `10.10.10.20` |
 
+Each virtual machine currently uses two network interfaces:
 
-\## Current Components
+### Adapter 1 — NAT
 
+Used for:
 
+- Internet access
+- Ubuntu updates
+- Package installation
 
-\### infra-gateway
+### Adapter 2 — Internal Network
 
+VirtualBox network:
 
+```text
+corp-net
+```
 
-Ubuntu Server 26.04.1 LTS
+Used exclusively for internal corporate communication.
 
+---
 
+# Remote Administration
 
-Responsibilities:
+Both servers use OpenSSH.
 
+Windows host access:
 
+```text
+localhost:2222 → infra-gateway:22
+localhost:2223 → storage-01:22
+```
 
-\- Corporate network gateway
+Internal server-to-server SSH also works across `corp-net`.
 
-\- SSH administration
+Example:
 
-\- Future WireGuard VPN gateway
-
-\- Future firewall and routing
-
-\- Future secure remote access
-
-
-
-Internal address:
-
-
-
+```text
+infra-gateway
 10.10.10.10
-
-
-
-\### storage-01
-
-
-
-Ubuntu Server 26.04.1 LTS
-
-
-
-Responsibilities:
-
-
-
-\- Centralized company file storage
-
-\- Samba SMB file server
-
-\- Department-based access control
-
-\- Future storage quotas
-
-\- Future backup and recovery
-
-\- Future object storage
-
-
-
-Internal address:
-
-
-
+      |
+      | SSH
+      v
+storage-01
 10.10.10.20
+```
 
+---
 
+# Enterprise File Server
 
-\## Department Storage
+`storage-01` currently runs:
 
+- Ubuntu Server
+- Samba / SMB
+- Linux users
+- Linux groups
+- POSIX permissions
+- Department-based authorization
 
+Company storage:
 
+```text
 /srv/company/
 
+├── engineering
+├── finance
+├── hr
+├── management
+└── shared
+```
 
+---
 
-\- finance
+# Identity and Access Control
 
-\- hr
+Linux department groups:
 
-\- engineering
+```text
+finance
+hr
+engineering
+management
+company-shared
+```
 
-\- management
+Current test employees:
 
-\- shared
+| User | Department | Shared Access |
+|---|---|---:|
+| Sarah | Finance | Yes |
+| Adam | HR | Yes |
+| Youssef | Engineering | Yes |
 
+Department directories use:
 
-
-Linux groups:
-
-
-
-\- finance
-
-\- hr
-
-\- engineering
-
-\- management
-
-\- company-shared
-
-
-
-\## Test Users
-
-
-
-Sarah
-
-\- Finance
-
-\- Shared
-
-
-
-Adam
-
-\- HR
-
-\- Shared
-
-
-
-Youssef
-
-\- Engineering
-
-\- Shared
-
-
-
-\## Security Model
-
-
-
-Department folders use Linux group ownership and restricted permissions.
-
-
-
-Example:
-
-
-
-Finance:
-
-root:finance
-
+```text
 2770
+```
 
+This provides:
 
+```text
+Owner   → Read / Write / Execute
+Group   → Read / Write / Execute
+Others  → No Access
+```
 
-This allows Finance members to read/write while blocking users outside the Finance group.
+The setgid bit ensures that newly created files inherit their department group.
 
+---
 
+# Authorization Example
 
-Samba applies an additional authentication and authorization layer.
+Sarah belongs to:
 
+```text
+finance
+company-shared
+```
 
+Expected permissions:
 
-Example:
+| Resource | Access |
+|---|---:|
+| Finance | ✅ Allowed |
+| Shared | ✅ Allowed |
+| HR | ❌ Denied |
+| Engineering | ❌ Denied |
+| Management | ❌ Denied |
 
+These permissions have been tested at both the Linux filesystem and Samba layers.
 
+---
 
-Sarah -> Finance: ALLOWED
+# Samba
 
-Sarah -> Shared: ALLOWED
+Current SMB shares:
 
-Sarah -> HR: DENIED
+```text
+finance
+hr
+engineering
+management
+shared
+```
 
+Samba authentication has been configured for:
 
+```text
+sarah
+adam
+youssef
+```
 
-\## Completed Milestones
+A real SMB transfer has already been validated:
 
-
-
-\- Ubuntu Server lab created
-
-\- Private corporate network created
-
-\- Static internal addressing configured
-
-\- SSH remote administration configured
-
-\- Server-to-server communication validated
-
-\- Samba installed
-
-\- Department folder structure created
-
-\- Linux groups created
-
-\- Department permissions configured
-
-\- Samba users configured
-
-\- Samba shares configured
-
-\- SMB authentication validated
-
-\- Unauthorized department access rejected
-
-\- SMB file upload successfully tested
-
-
-
-\## Planned Architecture
-
-
-
-Internet
-
-&#x20;  |
-
-Firewall / VPN
-
-&#x20;  |
-
+```text
 infra-gateway
+      |
+      | SMB
+      v
+storage-01
+      |
+      v
+Finance share
+      |
+      v
+finance-report.txt
+```
+
+The test verified:
+
+- Network connectivity
+- SMB connectivity
+- Samba authentication
+- Department authorization
+- Write permissions
+- Group inheritance
+- Unauthorized access rejection
+
+---
+
+# Current Progress
+
+## Phase 1 — Network Foundation ✅
+
+- [x] VirtualBox laboratory
+- [x] Ubuntu Server installation
+- [x] `infra-gateway`
+- [x] `storage-01`
+- [x] Private `corp-net`
+- [x] Static internal IPv4 addresses
+- [x] Internet connectivity
+- [x] DNS validation
+- [x] SSH administration
+- [x] Server-to-server communication
+- [x] Windows SSH access
+
+---
+
+## Phase 2 — Enterprise Storage 🚧
+
+### Completed
+
+- [x] Samba installation
+- [x] Company directory structure
+- [x] Department Linux groups
+- [x] Test employee accounts
+- [x] Department permissions
+- [x] Samba authentication
+- [x] Samba shares
+- [x] SMB connectivity
+- [x] Unauthorized access testing
+- [x] SMB file upload test
+- [x] Group inheritance test
+
+### Next
+
+- [ ] Dedicated data disk
+- [ ] Partitioning and filesystem
+- [ ] Persistent `/etc/fstab` mount
+- [ ] Safe Samba data migration
+- [ ] Storage quotas
+- [ ] POSIX ACLs
+- [ ] Backup strategy
+- [ ] Automated backups
+- [ ] Restore testing
+- [ ] File access auditing
+- [ ] Disk health monitoring
+- [ ] MinIO object storage
+
+---
+
+# Future Phases
+
+## Phase 3 — Secure Remote Access
+
+- [ ] WireGuard VPN
+- [ ] VPN address space
+- [ ] User provisioning
+- [ ] Device provisioning
+- [ ] Firewall
+- [ ] IP forwarding
+- [ ] Routing
+- [ ] VPN-only storage access
+- [ ] Key rotation
+- [ ] VPN audit logs
+
+---
+
+## Phase 4 — Print Infrastructure
+
+- [ ] CUPS
+- [ ] Print server
+- [ ] Network printer simulation
+- [ ] Department printer access
+- [ ] Print queues
+- [ ] Usage tracking
+- [ ] Print analytics
 
-&#x20;  |
+---
 
-corp-net
+## Phase 5 — Observability
 
-&#x20;  |
-
-&#x20;  +-- storage-01
-
-&#x20;  +-- print-01
-
-&#x20;  +-- application services
-
-&#x20;  +-- monitoring
-
-
-
-Management Platform:
-
-
-
-React + TypeScript
-
-&#x20;       |
-
-Spring Boot REST API
-
-&#x20;       |
-
-PostgreSQL
-
-&#x20;       |
-
-Infrastructure services
-
-
-
-\## Planned Technologies
-
-
-
-Infrastructure:
-
-\- Linux
-
-\- WireGuard
-
-\- Samba
-
-\- MinIO
-
-\- CUPS
-
-
-
-Backend:
-
-\- Java
-
-\- Spring Boot
-
-\- PostgreSQL
-
-
-
-Frontend:
-
-\- React
-
-\- TypeScript
-
-
-
-DevOps:
-
-\- Docker
-
-\- GitHub Actions
-
-\- Prometheus
-
-\- Grafana
-
-\- Loki
-
-
-
-Later:
-
-\- Kubernetes
-
-\- AWS
-
-\- Terraform
-
-
-
-\## Project Goal
-
-
-
-Build a realistic enterprise infrastructure platform demonstrating:
-
-
-
-\- Linux administration
-
-\- Networking
-
-\- Security
-
-\- Storage engineering
-
-\- Identity and access control
-
-\- Backend engineering
-
-\- REST APIs
-
-\- Infrastructure automation
-
-\- Observability
-
-\- DevOps
-
-\- Cloud-native architecture
-
+- [ ] Prometheus
+- [ ] Node Exporter
+- [ ] Grafana
+- [ ] Loki
+- [ ] CPU metrics
+- [ ] Memory metrics
+- [ ] Disk metrics
+- [ ] Network metrics
+- [ ] Samba metrics
+- [ ] VPN metrics
+- [ ] Alerts
+
+---
+
+## Phase 6 — Spring Boot Control Plane
+
+Planned REST APIs:
+
+```text
+/api/auth
+/api/employees
+/api/departments
+/api/servers
+/api/storage
+/api/shares
+/api/vpn
+/api/devices
+/api/backups
+/api/audit
+/api/security
+/api/printers
+/api/monitoring
+```
+
+Technologies:
+
+- Java
+- Spring Boot
+- Spring Security
+- PostgreSQL
+- REST
+- JWT
+- RBAC
+
+---
+
+## Phase 7 — React Administration Platform
+
+Planned frontend modules:
+
+- Infrastructure dashboard
+- Employee management
+- Department management
+- Server health
+- Storage management
+- File-share permissions
+- VPN management
+- Device management
+- Backup management
+- Security events
+- Audit logs
+- Printer management
+- Monitoring
+
+---
+
+# Future Control Plane Architecture
+
+```mermaid
+flowchart TD
+
+    Admin["Infrastructure Administrator"]
+
+    React["React + TypeScript<br/>Admin Portal"]
+
+    API["Spring Boot<br/>REST API"]
+
+    PostgreSQL["PostgreSQL"]
+
+    Management["Infrastructure Management Layer"]
+
+    VPN["WireGuard"]
+    Storage["Samba / MinIO"]
+    Printing["CUPS"]
+    Monitoring["Prometheus / Grafana / Loki"]
+
+    Admin --> React
+
+    React --> API
+
+    API --> PostgreSQL
+    API --> Management
+
+    Management --> VPN
+    Management --> Storage
+    Management --> Printing
+    Management --> Monitoring
+```
+
+---
+
+# Planned DevOps Evolution
+
+```text
+Source Code
+    |
+    v
+GitHub
+    |
+    v
+GitHub Actions
+    |
+    +--> Tests
+    |
+    +--> Security Scan
+    |
+    +--> Build
+    |
+    +--> Docker Images
+            |
+            v
+        Deployment
+```
+
+Future technologies:
+
+- Docker
+- Docker Compose
+- GitHub Actions
+- Kubernetes
+- AWS
+- Terraform
+
+---
+
+# Engineering Concepts Demonstrated
+
+This project is designed to demonstrate practical experience with:
+
+### Systems
+
+- Linux administration
+- Processes and services
+- systemd
+- Filesystems
+- Storage
+- Users and groups
+
+### Networking
+
+- IPv4
+- Subnetting
+- NAT
+- Internal networks
+- Routing
+- DNS
+- SSH
+- SMB
+- VPN
+
+### Security
+
+- Authentication
+- Authorization
+- RBAC
+- Filesystem permissions
+- Department isolation
+- Private networks
+- Secure remote access
+- Audit logging
+
+### Backend Engineering
+
+- Java
+- Spring Boot
+- PostgreSQL
+- REST APIs
+- Security
+- Infrastructure integration
+
+### DevOps
+
+- Git
+- GitHub
+- CI/CD
+- Docker
+- Monitoring
+- Infrastructure automation
+- Kubernetes
+- Cloud
+
+---
+
+# Repository Structure
+
+```text
+enterprise-infrastructure-platform/
+
+├── backend/
+├── frontend/
+│
+├── infrastructure/
+│   ├── networking/
+│   ├── storage/
+│   ├── vpn/
+│   ├── printing/
+│   └── monitoring/
+│
+├── docs/
+│   ├── 01-network-foundation.md
+│   └── 02-file-server.md
+│
+├── diagrams/
+│
+├── README.md
+├── CHANGELOG.md
+└── .gitignore
+```
+
+---
+
+# Development Method
+
+Each infrastructure feature follows this lifecycle:
+
+```text
+DESIGN
+   ↓
+BUILD
+   ↓
+TEST
+   ↓
+FAILURE TEST
+   ↓
+SECURITY HARDENING
+   ↓
+OBSERVABILITY
+   ↓
+DOCUMENT
+   ↓
+COMMIT
+   ↓
+PUSH
+```
+
+The goal is not simply to make services work.
+
+The goal is to understand, secure, observe, automate, document, and operate them like real infrastructure.
+
+---
+
+# Current Focus
+
+> **Phase 2 — Enterprise Storage**
+
+Next engineering milestone:
+
+**Dedicated storage volume and separation of operating-system data from company business data.**
+
+---
+
+## Status
+
+🚧 **Active Development**
