@@ -1,0 +1,46 @@
+# Secrets
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+
+# SSH / VPN credentials
+id_rsa
+id_ed25519
+*.conf.secret
+privatekey
+private-key
+
+# Virtual machines
+*.vdi
+*.vmdk
+*.ova
+*.ovf
+*.iso
+
+# Backups containing sensitive configuration
+*.bak
+*.backup
+
+# Java
+target/
+*.class
+
+# Node
+node_modules/
+.next/
+dist/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
