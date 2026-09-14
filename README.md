@@ -283,7 +283,7 @@ The test verified:
 
 ---
 
-## Phase 2 — Enterprise Storage 🚧
+## Phase 2 — Enterprise Storage :quotas and advanced access control 🚧
 
 ### Completed
 
@@ -301,14 +301,16 @@ The test verified:
 
 ### Next
 
-- [ ] Dedicated data disk
-- [ ] Partitioning and filesystem
-- [ ] Persistent `/etc/fstab` mount
-- [ ] Safe Samba data migration
+- [x] Dedicated data disk
+- [x] GPT partitioning
+- [x] ext4 filesystem
+- [x] Persistent `/etc/fstab` mount
+- [x] Safe Samba data migration
+- [x] Storage mount hardening
+- [x] Reboot persistence validation
 - [ ] Storage quotas
 - [ ] POSIX ACLs
-- [ ] Backup strategy
-- [ ] Automated backups
+- [ ] Backup system
 - [ ] Restore testing
 - [ ] File access auditing
 - [ ] Disk health monitoring
